@@ -10,39 +10,10 @@ class EncoderDataset(Dataset):
 
     def __init__(self, data_path):
         self.data = self._load_data(data_path)
-        self.data = self._prepare_text(self.data)
 
     def _load_data(self, data_path):
-        data = pd.read_json(data_path, lines=True)
-        data = (
-            data[[
-                "id",
-                "year",
-                "authors.name",
-                "author.org",
-                "venue.raw",
-                "keywords",
-                "fos.name",
-                "title",
-                "abstract",
-                "n_citation",
-                "references"
-            ]]
-            .loc[data["language"] == "en"]
-            .sort_values(by="id")
-            .dropna()
-        )
-
-    def _prepare_text(self, data):
-        data["text"] = (
-            data["title"] + "\n"
-            + data["authors.name"] + "\n"
-            + data["author.org"] + "\n"
-            + data["venue.raw"] + "\n"
-            + data["fos.name"] + "\n"
-            + data["keywords"].apply(lambda x: " ".join(x)) + "\n"
-            + data["abstract"]
-        )
+        data = pd.read_feather(data_path)
+        return data
 
     def __len__(self):
         return len(self.data)

@@ -1,5 +1,5 @@
-# import torch
-# import torch.nn as nn
+import torch
+import torch.nn as nn
 
 
 class Model(nn.Module):
@@ -7,7 +7,6 @@ class Model(nn.Module):
     def __init__(
             self, 
             encoder_model, 
-            encoder_data,
             graph_model, 
             regression_model
         ):
@@ -16,7 +15,7 @@ class Model(nn.Module):
         self.graph_model = graph_model
         self.regression_model = regression_model
 
-    def initialize_embeddings(self, tokens):
+    def setup(self, tokens):
         self.embeddings = self.encoder_model(tokens)
 
     def forward(self):

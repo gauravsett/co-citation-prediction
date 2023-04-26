@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class GraphModel(nn.Module):
     
-    def __init__(self, embedding_dim):
+    def __init__(self):
         super().__init__()
 
     def forward(self, x):
