@@ -39,7 +39,6 @@
 
 \begin{document}
 
-%%%%%%%%% TITLE - PLEASE UPDATE
 \title{Co-Citation Prediction with Graph Networks and Transformers}
 
 \author{Samihan Dani, Gaurav Sett\\
@@ -58,20 +57,57 @@ Georgia Insitute of Technology\\
 }
 \maketitle
 
-%%%%%%%%% ABSTRACT
+
 \begin{abstract}
-   The ABSTRACT is to be in fully justified italicized text, at the top of the left-hand column, below the author and affiliation information.
-   Use the word ``Abstract'' as the title, in 12-point Times, boldface type, centered relative to the column, initially capitalized.
-   The abstract is to be in 10-point, single-spaced type.
-   Leave two blank lines after the Abstract, then begin the main text.
-   Look at previous CVPR abstracts to get a feel for style and length.
+   A vast number of academic papers are published each year. Especially in fast-paced disciplines like computer science, it is impossible for researchers to develop a comprehensive understanding of the landscape. We aim to build a model to predict the likelihood of two papers being co-cited by subsequent work. This model can help researchers parse through literature to identify novel research directions. We will leverage language models to represent each paper's content and graph convolutions to represent citation networks.
 \end{abstract}
 
-%%%%%%%%% BODY TEXT
+
 \section{Introduction}
 \label{sec:intro}
 
-All you need is attention \cite{vaswani2017attention}.
+(5 points) What did you try to do? What problem did you try to solve? Articulate your objectives
+using absolutely no jargon.
+(5 points) Who cares? If you are successful, what difference will it make?
+(5 points) What data did you use? Provide details about your data, specifically choose the most
+important aspects of your data mentioned here: Datasheets for Datasets
+(https://arxiv.org/abs/1803.09010). Note that you do not have to choose all of them, just the most
+relevant.
+
+
+\section{Related Work}
+(5 points) How is it done today, and what are the limits of current practice?
+
+
+\section{Data}
+\cite{tang2008arnetminer}
+
+\section{Methods}
+
+(10 points) What did you do exactly? How did you solve the problem? Why did you think it would
+be successful? Is anything new in your approach?
+(5 points) What problems did you anticipate? What problems did you encounter? Did the very first
+thing you tried work?
+
+\subsection{Architecture}
+
+\subsubsection{Transformer Encoder}
+
+\subsubsection{Graph Convolutional Network}
+
+\subsubsection{Regression Head}
+
+\subsection{Evaluation}
+
+\section{Results}
+
+(10 points) How did you measure success? What experiments were used? What were the results,
+both quantitative and qualitative? Did you succeed? Did you fail? Why? Justify your reasons with
+arguments supported by evidence and data. Make sure to mention any code repositories and/or
+resources that you used!
+
+\section{Discussion}
+
 
 %%%%%%%%% REFERENCES
 {\small

@@ -1,15 +1,18 @@
+from transformers import AutoTokenizer
 import torch
 from torch.utils.data import Dataset
 import pandas as pd
 from itertools import combinations
 from torch_geometric.data import Dataset as GeoDataset
 from torch_geometric.data import Data as GeoData
+from torch.nn.utils.rnn import pad_sequence
 
 
 class EncoderDataset(Dataset):
 
-    def __init__(self, data_path):
+    def __init__(self, data_path, tokenizer_name):
         self.data = self._load_data(data_path)
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
 
     def _load_data(self, data_path):
         data = pd.read_feather(data_path)
@@ -19,13 +22,15 @@ class EncoderDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, index):
-        return self.data[index]["text"]
+        return self.data.iloc[index]["text"]
 
-
-def collate_fn_encoder(batch, tokenizer):
-    texts = [t for t in batch]
-    tokens = [tokenizer.encode(text) for text in texts]
-    return tokens
+    def collate_fn(self, batch):
+        tokens = self.tokenizer(batch, truncation=True)
+        input_ids = pad_sequence(
+            [torch.tensor(t) for t in tokens["input_ids"]],
+            padding_value=self.tokenizer.pad_token_id,
+        )
+        return input_ids
 
 
 class GraphDataset(GeoDataset):
@@ -46,7 +51,7 @@ class GraphDataset(GeoDataset):
         return len(self.data)
     
     def __getitem__(self, index):
-        return self.data[index]
+        return self.data.iloc[index]
 
 
 class RegressionDataset(torch.utils.data.Dataset):
