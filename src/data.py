@@ -12,7 +12,9 @@ class EncoderDataset(Dataset):
 
     def __init__(self, data_path, tokenizer_name):
         self.data = self._load_data(data_path)
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            tokenizer_name, max_length=512
+        )
 
     def _load_data(self, data_path):
         data = pd.read_feather(data_path)
@@ -25,12 +27,8 @@ class EncoderDataset(Dataset):
         return self.data.iloc[index]["text"]
 
     def collate_fn(self, batch):
-        tokens = self.tokenizer(batch, truncation=True)
-        input_ids = pad_sequence(
-            [torch.tensor(t) for t in tokens["input_ids"]],
-            padding_value=self.tokenizer.pad_token_id,
-        )
-        return input_ids
+        tokens = self.tokenizer(batch, padding=True, truncation=True, return_tensors="pt")
+        return torch.tensor(tokens["input_ids"]), torch.tensor(tokens["attention_mask"])
 
 
 class GraphDataset(GeoDataset):
@@ -67,6 +65,8 @@ class RegressionDataset(torch.utils.data.Dataset):
         co_cite_count = dict()
         for row in data.itertuples():
             for combination in combinations(row.references, 2):
+                if combination[0] == combination[1]:
+                    continue
                 c = frozenset(combination)
                 if c in co_cite_count:
                     co_cite_count[c] += 1
@@ -76,7 +76,8 @@ class RegressionDataset(torch.utils.data.Dataset):
 
     def _get_normalization(self, data, co_cite_count):
         co_cite_yearly = dict()
-        for (k_1, k_2), v in co_cite_count.items():
+        for k, v in co_cite_count.items():
+            k_1, k_2 = list(k)
             year = data.loc[data["id"].isin([k_1, k_2])]["year"].max()
             if year in co_cite_yearly:
                 co_cite_yearly[year].append(v)
@@ -90,12 +91,13 @@ class RegressionDataset(torch.utils.data.Dataset):
     
     def _create_examples(self, data, co_cite_count, co_cite_yearly):
         examples = []
-        for (k_1, k_2), v in co_cite_count.items():
+        for k, v in co_cite_count.items():
+            k_1, k_2 = list(k)
             year = data.loc[data["id"].isin([k_1, k_2])]["year"].max()
             if year in co_cite_yearly:
                 v = (v - co_cite_yearly[year][0]) / co_cite_yearly[year][1]
             examples.append([(k_1, k_2), v])
-            for k_3 in data[k_1].references:
+            for k_3 in data.loc[data["id"] == k_1].references:
                 if frozenset([k_2, k_3]) not in co_cite_count:
                     examples.append([(k_1, k_3), 0])
                     break
