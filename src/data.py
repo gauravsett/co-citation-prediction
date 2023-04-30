@@ -77,9 +77,9 @@ class RegressionDataset(torch.utils.data.Dataset):
                     co_cite_count[c] += 1
                 else:
                     co_cite_count[c] = 1
-                count += 1
-                if count == 10:
-                    break
+                # count += 1
+                # if count == 10:
+                #     break
         return co_cite_count
 
     def _get_normalization(self, data, co_cite_count):
@@ -106,19 +106,19 @@ class RegressionDataset(torch.utils.data.Dataset):
         examples = []
         for k, v in co_cite_count.items():
             k_1, k_2 = list(k)
-            if k_1 in data.index and k_2 in data.index:
-                year = data.loc[[k_1, k_2]]["year"].max()
-                v = v / co_cite_yearly[year]
+            if k_1 not in data.index or k_2 not in data.index:
+                continue
+            year = data.loc[[k_1, k_2]]["year"].max()
+            v = v / co_cite_yearly[year]
             examples.append([(k_1, k_2), v])
             if k_1 in data.index:
                 references = data.loc[k_1].references
-                count = 0
                 for k_3 in references:
-                    if type(k_3) == str and frozenset((k_2, k_3)) not in co_cite_count:
+                    if (
+                        k_3 in data.index
+                        and frozenset((k_2, k_3)) not in co_cite_count
+                        ):
                         examples.append([(k_1, k_3), 0])
-                        count += 1
-                        if count == 10:
-                            break
         return examples
 
     def __len__(self):
