@@ -6,7 +6,7 @@ from itertools import combinations
 from torch_geometric.data import Dataset as GeoDataset
 from torch_geometric.data import Data as GeoData
 from torch.nn.utils.rnn import pad_sequence
-
+import numpy as np
 
 class EncoderDataset(Dataset):
 
@@ -54,16 +54,21 @@ class GraphDataset(GeoDataset):
 
 class RegressionDataset(torch.utils.data.Dataset):
     
-    def __init__(self, data, embeddings):
+    def __init__(self, data):
+        data = data.set_index("id")
         co_cite_count = self._get_co_citations(data)
+        print("co_cite_count", len(co_cite_count))
         co_cite_yearly = self._get_normalization(data, co_cite_count)
+        print("co_cite_yearly", len(co_cite_yearly))
         self.examples = self._create_examples(
-            data, co_cite_count, co_cite_yearly, embeddings
+            data, co_cite_count, co_cite_yearly
         )
+        print("examples", len(self.examples))
 
     def _get_co_citations(self, data) -> dict:
         co_cite_count = dict()
         for row in data.itertuples():
+            count = 0
             for combination in combinations(row.references, 2):
                 if combination[0] == combination[1]:
                     continue
@@ -72,20 +77,28 @@ class RegressionDataset(torch.utils.data.Dataset):
                     co_cite_count[c] += 1
                 else:
                     co_cite_count[c] = 1
+                count += 1
+                if count == 10:
+                    break
         return co_cite_count
 
     def _get_normalization(self, data, co_cite_count):
-        co_cite_yearly = dict()
+        co_cite_yearly_sum = dict()
+        co_cite_yearly_count = dict()
         for k, v in co_cite_count.items():
             k_1, k_2 = list(k)
-            year = data.loc[data["id"].isin([k_1, k_2])]["year"].max()
-            if year in co_cite_yearly:
-                co_cite_yearly[year].append(v)
+            if k_1 not in data.index or k_2 not in data.index:
+                continue
+            year = data.loc[[k_1, k_2]]["year"].max()
+            if year in co_cite_yearly_sum:
+                co_cite_yearly_sum[year] += v
+                co_cite_yearly_count[year] += 1
             else:
-                co_cite_yearly[year] = [v]
+                co_cite_yearly_sum[year] = v
+                co_cite_yearly_count[year] = 1
         co_cite_yearly = {
-            k: (torch.tensor(v).mean(), torch.tensor(v).std())
-            for k, v in co_cite_yearly.items()
+            k: v / co_cite_yearly_count[k]
+            for k, v in co_cite_yearly_sum.items()
         }
         return co_cite_yearly
     
@@ -93,14 +106,19 @@ class RegressionDataset(torch.utils.data.Dataset):
         examples = []
         for k, v in co_cite_count.items():
             k_1, k_2 = list(k)
-            year = data.loc[data["id"].isin([k_1, k_2])]["year"].max()
-            if year in co_cite_yearly:
-                v = (v - co_cite_yearly[year][0]) / co_cite_yearly[year][1]
+            if k_1 in data.index and k_2 in data.index:
+                year = data.loc[[k_1, k_2]]["year"].max()
+                v = v / co_cite_yearly[year]
             examples.append([(k_1, k_2), v])
-            for k_3 in data.loc[data["id"] == k_1].references:
-                if frozenset([k_2, k_3]) not in co_cite_count:
-                    examples.append([(k_1, k_3), 0])
-                    break
+            if k_1 in data.index:
+                references = data.loc[k_1].references
+                count = 0
+                for k_3 in references:
+                    if type(k_3) == str and frozenset((k_2, k_3)) not in co_cite_count:
+                        examples.append([(k_1, k_3), 0])
+                        count += 1
+                        if count == 10:
+                            break
         return examples
 
     def __len__(self):
