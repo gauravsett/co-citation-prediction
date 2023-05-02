@@ -70,7 +70,6 @@ Georgia Insitute of Technology\\
    Citation networks have become a dominant approach to understanding the relationships between papers. Co-citation, where two papers are cited together, has been used to track the evolution of research topics. However, this work has been largely descriptive.
    We employ a novel deep learning techniques to predict co-citations.
    Our model is composed of an encoder to represent the semantic information of each paper, a graph network to represent the citation network, and a regression head to predict the number of co-citations for a pair of papers.
-   We find {TODO}
 \end{abstract}
 
 
@@ -108,6 +107,10 @@ Some work has leveraged large language models for link prediction. One  framewor
 We use the Citation Network Dataset as the basis for our work \cite{tang2008arnetminer}. Specifically, we use the 14th edition of the DBLP citation network collected on January 1st, 2023. DBLP is a large computer science bibliography with 4.4 million publications from 2.2 million authors \cite{ley2002dblp}. 
 For each paper, we have a unique ID, title, author names, publication venue, year, keywords, language, abstract, and most importantly references. These papers date back to 1980.
 
+\begin{table}
+   
+\end{table}
+
 We filter our dataset for our model. We select only English papers with complete information about abstracts, keywords, venues, and titles. From this set, we selected a random sample of 100,000 papers to reduce computational cost.
 
 For each paper, we constructed a string combining the title, venue, keywords, and abstract to represent the content. This string is later used as input for our encoder model. Our graph model is based on a network where each paper is a node and each citation is an edge drawn from the citing paper to the cited paper. We use the references field to construct this network. 
@@ -131,7 +134,7 @@ The encoder is a language model that encodes the semantic information of each pa
 
 For our training task, we selected 80\% of co-citation pairs and estimate the number of co-citations for each pair. We use the remaining 20\% of co-citation pairs for validation. 
 We use a mean squared error loss function to train our model.
-We use the Adam optimizer with a learning rate of 0.001, a batch size of 32, and train for 10 epochs.
+We use the Adam optimizer with a learning rate of 0.00001, a weight decay of 0.001, train for 20 epochs. For our regression task, our batch size is 4096.
 
 \subsubsection{Transformer Encoder}
 
@@ -147,7 +150,8 @@ This model produced convolved embeddings for each paper. We use these embeddings
 
 \subsubsection{Regression Head}
 
-Our regression module is composed of a fully connected layer with a output dimension of 32, a ReLU activation function, and a final fully connected layer with a single output. This output is the predicted number of co-citations for a pair of papers.
+Our regression head takes in a concatenated pair of convolved embeddings.
+The module is composed of a fully connected layer with a output dimension of 32, a ReLU activation function, and a final fully connected layer with a single output. This output is the predicted number of co-citations for a pair of papers.
 
 
 \section{Results}
@@ -172,10 +176,20 @@ Our train loss can be seen in Figure \ref{fig:train_loss}. Our validation loss c
 
 We evaluate our regression output using $RSME$ and $R^2$. We find that our model has an $RSME$ of 1.145 and an $R^2$ of 0.002. This suggests that our model is not able to predict the number of co-citations well. 
 
-Our models perform worse without the GCN 
+The decrease in our validation loss suggests our model is not overfitting. Upon investigating our model, we find that the model converging on a safe solution of predicting the average number of co-citations. These findings are robust to our tuning of optimizers, learning rates, batch sizes, and hidden dimensions. We also experimented with different architectures for our regression head, changing the number of fully connected layers and the activation functions. 
+
+When removing our encoder model, model performance decreases significantly. This indicates the encoder is successfully capturing semantic information relevant to the task. 
+
+When removing our graph convolutions, model performance slightly decreases. This indicates that the graph network is capturing structural information relevant to the task. 
+
+While this may lead us to believe the regression head is at issue, the model's failure may also be a combination of the encoder and graph network. 
+
 
 \section{Discussion}
 
+This paper employs a deep learning approach to predict co-citation. We start with a transformer encoder to capture the semantic information of each paper. We then use a graph convolutional network to incorporate the citation network. Finally, we use a regression head to predict the number of co-citations for a pair of papers. 
+
+We find that our model is not able to predict the number of co-citations well. This may be due to the complexity of the task. Co-citation is a complex phenomenon that is not well understood. Additionally, the number of co-citations is a noisy measure of the relationship between papers. For example, a paper may be cited for a variety of reasons, including criticism. We were also limited to paper abstracts which may not contain enough information for the task.
 
 Our work should be understood in the context of its limitations. First, our dataset is predominately computer science papers. Amongst those, we have filtered for English language papers only. Additionally, language model capabilities are known to change dramatically at different scales, so our findings may not generalize to other pre-trained encoders.
 
