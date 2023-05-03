@@ -103,8 +103,14 @@ The impact of transformers on graph ML has lagged their transformation of natura
 Some work has leveraged large language models for link prediction. One  framework called Bi-Link utilizes transformers for link prediction tasks \cite{peng2022bi}. Specifically, they used pre-trained language models to encode textual information about entities and relations in a knowledge graph. They then designed a contrastive learning approach with probabilistic syntax prompts to efficiently search for relational prompts according to learnt syntactical patterns that generalize to large knowledge graphs. This approach allows the model to comprehend the underlying semantics and logic patterns of relations, which is crucial for accurate link prediction.
 
 \section{Data}
+\begin{figure}
+   \centering
+   \includegraphics[width=0.5\textwidth]{figures/cit_graph.png}
+   \caption{Example of citation graph}
+   \label{fig:cite_graph}
+\end{figure}
 
-We use the Citation Network Dataset as the basis for our work \cite{tang2008arnetminer}. Specifically, we use the 14th edition of the DBLP citation network collected on January 1st, 2023. DBLP is a large computer science bibliography with 4.4 million publications from 2.2 million authors \cite{ley2002dblp}. 
+We use the Citation Network Dataset as the basis for our work \cite{tang2008arnetminer}. Specifically, we use the 14th edition of the DBLP citation network collected on January 1st, 2023. DBLP is a large computer science bibliography with 4.4 million publications from 2.2 million authors \cite{ley2002dblp}. A diagram showed in Figure \ref{fig:cite_graph} illustrates how a citation graph should look like. 
 For each paper, we have a unique ID, title, author names, publication venue, year, keywords, language, abstract, and most importantly references. These papers date back to 1980.
 
 \begin{table}
@@ -143,8 +149,14 @@ We use the ``MiniLM-L6-H384-uncased'' language model from the Sentence Transform
 These embeddings are computed once prior to training and are used as input to the graph network. We do not fine-tune the language model during training.
 
 \subsubsection{Graph Convolutional Network}
+\begin{figure}
+   \centering
+   \includegraphics[width=0.5\textwidth]{figures/graphsage.png}
+   \caption{Illustration of GraphSAGE Model}
+   \label{fig:graph}
+\end{figure}
 
-We use a graph convolutional network to incorporate the citation network. We use the PyTorch Geometric library \cite{fey2019fast} to implement this network. Specifically, we use the SageConv layer, which is a graph convolutional layer based on the GraphSAGE algorithm \cite{hamilton2017inductive}. This layer aggregates the embeddings of a node's neighbors and applies a linear transformation. For these layers, we use 16 hidden channels, a dropout rate of 0.15, and a ReLU activation function. We apply this layer thrice in the graph network.
+We use a graph convolutional network to incorporate the citation network. We use the PyTorch Geometric library \cite{fey2019fast} to implement this network. Specifically, we use the SageConv layer, which is a graph convolutional layer based on the GraphSAGE algorithm \cite{hamilton2017inductive}. This layer aggregates the embeddings of a node's neighbors and then concatenates this aggregation with it;s own previous embedding. Then, an update function is applied which performs a linear transformation on this vector. For these layers, we use 16 hidden channels, a dropout rate of 0.15, and a ReLU activation function. We apply this layer thrice in the graph network. The number of layers determined the size of the neighborhood for a node's aggregation. For instance, with our implementation, each node aggregates information from every node within a 3-hop radius of the node. This process can be seen in Figure \ref{fig:graph} from \cite{hamilton2017inductive}. 
 
 This model produced convolved embeddings for each paper. We use these embeddings as input to the regression head.
 
@@ -189,7 +201,9 @@ While this may lead us to believe the regression head is at issue, the model's f
 
 This paper employs a deep learning approach to predict co-citation. We start with a transformer encoder to capture the semantic information of each paper. We then use a graph convolutional network to incorporate the citation network. Finally, we use a regression head to predict the number of co-citations for a pair of papers. 
 
-We find that our model is not able to predict the number of co-citations well. This may be due to the complexity of the task. Co-citation is a complex phenomenon that is not well understood. Additionally, the number of co-citations is a noisy measure of the relationship between papers. For example, a paper may be cited for a variety of reasons, including criticism. We were also limited to paper abstracts which may not contain enough information for the task.
+We find that our model is not able to predict the number of co-citations well. This may be due to the complexity of the task. Co-citation is a complex phenomenon that is not well understood. Additionally, the number of co-citations is a noisy measure of the relationship between papers. For example, a paper may be cited for a variety of reasons, including criticism. We were also limited to paper abstracts which may not contain enough information for the task. 
+
+One additional problem may be that the dataset did not include embeddings for all of the papers referenced. Since we gave these embeddings, the average of all of the existing paper embeddings, it could be that they drowned out the notable papers during the aggregation in the convolutional layer. This explanation aligns with our results since the model seems to predict similar values regardless of the pairs shown. 
 
 Our work should be understood in the context of its limitations. First, our dataset is predominately computer science papers. Amongst those, we have filtered for English language papers only. Additionally, language model capabilities are known to change dramatically at different scales, so our findings may not generalize to other pre-trained encoders.
 
