@@ -70,6 +70,10 @@ Georgia Insitute of Technology\\
    Citation networks have become a dominant approach to understanding the relationships between papers. Co-citation, where two papers are cited together, has been used to track the evolution of research topics. However, this work has been largely descriptive.
    We employ a novel deep learning techniques to predict co-citations.
    Our model is composed of an encoder to represent the semantic information of each paper, a graph network to represent the citation network, and a regression head to predict the number of co-citations for a pair of papers.
+   Our approach is unable to significantly outperform a baseline. 
+   Our model learns to take a safe approach, predicting an average number of co-citations for most pairs of papers.
+   This approach appears robust to tuning and architecture modifications.
+   Further work is needed to determine the viability of the approach and opportunities for improvement.
 \end{abstract}
 
 
@@ -98,6 +102,8 @@ However, it appears no work has combined semantic information about paper conten
 
 Advances in natural language processing have largely been driven by the development of large language models. These models are trained on large corpora of text to learn the semantic information of language. The most popular of these models are based on transformers, which have been shown to outperform recurrent neural networks \cite{vaswani2017attention}. These models have been used for a variety of tasks, including question answering, text generation, and text classification \cite{devlin2018bert}. These models are encoder-decoder architectures, where the encoder learns the semantic information of the input and the decoder generates the output. The encoder produces a vector representation of the input, which can be used as input to other models. 
 
+Many papers have investigated the use of large language models for knowledge graph completion. One approach, involves using a pre-trained language model to learn entity representations from natural language descriptions. These representations are then used to complete the knowledge graph by inferring missing links \cite{Wang2022SimKGCSC}. Overall, while pre-trained language models have been shown to capture factual knowledge from massive texts, they are still quite behind specialized state-of-the-art models in terms of performance \cite{Lv2022DoPM}.
+
 The impact of transformers on graph ML has lagged their transformation of natural language processing and computer vision. There are many initiatives to represent graph structures in embeddings for input to transformer models, hoping to leverage their compute efficiency \cite{ying2021transformers,kim2022pure}. However, we aim to leverage both the graph structure of the citation network and semantic information of the paper. The Cascaded Transformers-GNN applies language modeling before the graph modeling \cite{hamilton2017inductive}, while the GraphFormer combines these into an iterative process \cite{yang2021graphformers}. Because we want to prioritize the semantic information for our task, and because we want our embeddings to generalize beyond our paper subset, we privilege the language model in our approach.
 
 Some work has leveraged large language models for link prediction. One  framework called Bi-Link utilizes transformers for link prediction tasks \cite{peng2022bi}. Specifically, they used pre-trained language models to encode textual information about entities and relations in a knowledge graph. They then designed a contrastive learning approach with probabilistic syntax prompts to efficiently search for relational prompts according to learnt syntactical patterns that generalize to large knowledge graphs. This approach allows the model to comprehend the underlying semantics and logic patterns of relations, which is crucial for accurate link prediction.
@@ -111,10 +117,28 @@ Some work has leveraged large language models for link prediction. One  framewor
 \end{figure}
 
 We use the Citation Network Dataset as the basis for our work \cite{tang2008arnetminer}. Specifically, we use the 14th edition of the DBLP citation network collected on January 1st, 2023. DBLP is a large computer science bibliography with 4.4 million publications from 2.2 million authors \cite{ley2002dblp}. A diagram showed in Figure \ref{fig:cite_graph} illustrates how a citation graph should look like. 
-For each paper, we have a unique ID, title, author names, publication venue, year, keywords, language, abstract, and most importantly references. These papers date back to 1980.
+Paper features can be found in Table \ref{tab:dataset}. These papers date back to 1980.
 
 \begin{table}
-   
+   % dataset features
+   \centering
+   \begin{tabular}{l|l}
+      \toprule
+      Feature & Description \\
+      \midrule
+      id & Unique identifier \\
+      title & Published title of paper \\
+      authors & List of author names \\
+      venue & Publication venue (ex. conference, journal) \\
+      year & Year of publication \\
+      keywords & List of keywords \\
+      language & Language of paper \\
+      abstract & Abstract of paper \\
+      references & List of referenced paper identifiers \\
+      \bottomrule
+   \end{tabular}
+   \caption{Features of dataset}
+   \label{tab:dataset}
 \end{table}
 
 We filter our dataset for our model. We select only English papers with complete information about abstracts, keywords, venues, and titles. From this set, we selected a random sample of 100,000 papers to reduce computational cost.
@@ -188,20 +212,20 @@ Our train loss can be seen in Figure \ref{fig:train_loss}. Our validation loss c
 
 We evaluate our regression output using $RSME$ and $R^2$. We find that our model has an $RSME$ of 1.145 and an $R^2$ of 0.002. This suggests that our model is not able to predict the number of co-citations well. 
 
-The decrease in our validation loss suggests our model is not overfitting. Upon investigating our model, we find that the model converging on a safe solution of predicting the average number of co-citations. These findings are robust to our tuning of optimizers, learning rates, batch sizes, and hidden dimensions. We also experimented with different architectures for our regression head, changing the number of fully connected layers and the activation functions. 
+The decrease in our validation loss suggests our model is not overfitting. Upon investigating our model, we find that the model converging on a safe solution of predicting the average number of co-citations. These findings are robust to our tuning of optimizers, learning rates, batch sizes, loss functions, and hidden dimensions. We also experimented with different architectures for our regression head, changing the number of fully connected layers and the activation functions. For example, we tried SGD, SGD with momentum, and quantile loss.
 
-When removing our encoder model, model performance decreases significantly. This indicates the encoder is successfully capturing semantic information relevant to the task. 
+When removing our encoder model, model performance decreases significantly. Node embeddings were initialized randomly and learnt through the graph network. These embeddings represent structural information about the paper's position in the citation network. This indicates the encoder is successfully capturing semantic information relevant to the task. 
 
-When removing our graph convolutions, model performance slightly decreases. This indicates that the graph network is capturing structural information relevant to the task. 
+When removing our graph convolutions, model performance slightly decreases. Embeddings were passed straight from the transformer encoder to the regression head after concatenation. This indicates that the graph network is capturing structural information relevant to the task. 
 
-While this may lead us to believe the regression head is at issue, the model's failure may also be a combination of the encoder and graph network. 
+While this may lead us to believe the regression head is at issue, the model's failure may also be a combination of the encoder and graph network. Further analysis is needed to determine the exact cause of the model's failure.
 
 
 \section{Discussion}
 
 This paper employs a deep learning approach to predict co-citation. We start with a transformer encoder to capture the semantic information of each paper. We then use a graph convolutional network to incorporate the citation network. Finally, we use a regression head to predict the number of co-citations for a pair of papers. 
 
-We find that our model is not able to predict the number of co-citations well. This may be due to the complexity of the task. Co-citation is a complex phenomenon that is not well understood. Additionally, the number of co-citations is a noisy measure of the relationship between papers. For example, a paper may be cited for a variety of reasons, including criticism. We were also limited to paper abstracts which may not contain enough information for the task. 
+We find that our model is not able to predict the number of co-citations well. This may be due to the complexity of the task. Co-citation is a complex phenomenon that is not well understood. Additionally, the number of co-citations is a noisy measure of the relationship between papers. For example, a paper may be cited for a variety of reasons, including criticism. We were also limited to paper abstracts which may not contain enough information for the task. For empirical papers, the methods and results sections may be more informative. These findings are difficult to represent in an abstract. Additionally, the technical matter such as equations and model architectures may be difficult to represent in text.
 
 One additional problem may be that the dataset did not include embeddings for all of the papers referenced. Since we gave these embeddings, the average of all of the existing paper embeddings, it could be that they drowned out the notable papers during the aggregation in the convolutional layer. This explanation aligns with our results since the model seems to predict similar values regardless of the pairs shown. 
 
